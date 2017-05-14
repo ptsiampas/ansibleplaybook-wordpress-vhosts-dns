@@ -1,0 +1,30 @@
+---
+# Owner of directories - Change these to Suite
+web_user: www-data
+web_group: www-data
+
+# DDNS Key Stuff
+# This needs to be populated with your DDNS key, you can also use the rndc.key if you want to be lazy.
+ddns_key_name: "" 
+ddns_key_secret: ""
+ddns_record: "{{ site_name }}.web-dev.skynet."
+ddns_dns_server: ""
+ddns_zone: ""
+ddns_type: "CNAME"
+ddns_host_server: ""
+
+# Change this to suite your environment.
+db_admin_host: localhost
+db_admin_user: god
+db_admin_password: 1234
+# You shouldn't need to change this.
+db_admin_port: 3306
+
+# These are the WordPress database settings
+wp_mysql_user: "wp_{{ site_name }}"
+wp_mysql_db: "wp_dev_{{ site_name }}"
+wp_mysql_password: 1234
+
+# set this on the command line. 
+# ansible-playbook playbook.yml -i hosts -e "site_name=yourNewSite"
+site_dir_name: "{{ site_name }}.web-dev"

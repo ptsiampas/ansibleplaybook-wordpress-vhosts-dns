@@ -1,0 +1,27 @@
+---
+- name: write the apache config file
+  become: true
+  template:
+    src: ./templates/vhosts.conf.j2
+    dest: /etc/apache2/sites-available/{{ site_name }}.web-dev.conf
+
+- name: Create web directory and set its permissions
+  file:
+    path: "/var/www/{{ site_name }}.web-dev/public_html"
+    state: directory
+    follow: yes
+
+- name: Create project directory and set its permissions
+  become: true
+  file:
+    path: "/var/log/vhosts/{{ site_name }}.web-dev"
+    state: directory
+
+- name: a2ensite {{ site_name }}.web-dev
+  become: true
+  command: a2ensite {{ site_name }}.web-dev
+  args:
+    creates: "{{ site_name }}.web-dev.conf"
+  notify:
+    - restart apache2
+

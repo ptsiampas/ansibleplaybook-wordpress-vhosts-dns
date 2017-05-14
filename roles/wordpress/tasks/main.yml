@@ -1,0 +1,108 @@
+---
+# tasks file for wordpress
+- name: Download WordPress  
+  get_url: 
+    url: https://wordpress.org/latest.tar.gz 
+    dest: /tmp/wordpress.tar.gz
+    validate_certs: no
+
+- name: Extract WordPress  
+  unarchive: 
+    src=/tmp/wordpress.tar.gz
+    dest="/var/www/{{ site_dir_name }}/"
+    copy=no
+
+- name: Get Wordpress Salts.
+  get_url:
+    url: https://api.wordpress.org/secret-key/1.1/salt
+    dest: "/var/www/{{ site_dir_name }}/wordpress/wp-salt.php"
+
+- file:
+    path: "/var/www/{{ site_dir_name }}/public_html"
+    state: absent 
+    
+- name: link wordpress to public_html
+  become: yes
+  file:
+    src: "/var/www/{{ site_dir_name }}/wordpress"
+    dest: "/var/www/{{ site_dir_name }}/public_html"
+    state: link
+ 
+- name: Copy sample config file
+  command: mv "/var/www/{{ site_dir_name }}/wordpress/wp-config-sample.php" "/var/www/{{ site_dir_name }}/wordpress/wp-config.php"
+    creates="/var/www/{{ site_dir_name }}/wordpress/wp-config.php"
+
+- name: Set correct Permissions for wp-config.php
+  file:
+    path: "/var/www/{{ site_dir_name }}/wordpress/wp-config.php"
+    mode: u=rw,g=rw,o=r
+
+- name: Update WordPress config file
+  lineinfile:
+    dest="/var/www/{{ site_dir_name }}//wordpress/wp-config.php"
+    regexp="{{ item.regexp }}"
+    line="{{ item.line }}"
+  with_items:
+    - {'regexp': "define\\('DB_NAME', '(.)+'\\);", 'line': "define('DB_NAME', '{{wp_mysql_db}}');"}        
+    - {'regexp': "define\\('DB_USER', '(.)+'\\);", 'line': "define('DB_USER', '{{wp_mysql_user}}');"}        
+    - {'regexp': "define\\('DB_PASSWORD', '(.)+'\\);", 'line': "define('DB_PASSWORD', '{{wp_mysql_password}}');"}
+  
+- name: Remove Default Salts from config file.
+  lineinfile:
+    dest: "/var/www/{{ site_dir_name }}//wordpress/wp-config.php"
+    state: absent
+    regexp: "{{ item.regexp }}"
+  with_items:
+    - {'regexp' : "^define\\('AUTH_KEY'," }
+    - {'regexp' : "^define\\('SECURE_AUTH_KEY'," }
+    - {'regexp' : "^define\\('LOGGED_IN_KEY'," }
+    - {'regexp' : "^define\\('NONCE_KEY'," }
+    - {'regexp' : "^define\\('SECURE_AUTH_SALT'," }
+    - {'regexp' : "^define\\('LOGGED_IN_SALT'," }
+    - {'regexp' : "^define\\('NONCE_SALT'," }
+    - {'regexp' : "^define\\('AUTH_SALT'," }
+    
+- name: Add Salt config to file
+  blockinfile:
+    path: "/var/www/{{ site_dir_name }}//wordpress/wp-config.php"
+    state: present
+    content: |
+      // ====================================================================
+      // Load the salts for this environment
+      // https://api.wordpress.org/secret-key/1.1/salt/
+      // ====================================================================
+      if ( file_exists( ROOTPATH . 'config/wp-salt.php' ) ) {
+        require ROOTPATH . 'config/wp-salt.php';
+      }
+      define('FS_METHOD', 'direct');
+
+- name: Create Wordpress Database
+  mysql_db: 
+    login_host: "{{ db_admin_host}}"
+    login_user: "{{ db_admin_user}}"
+    login_password: "{{ db_admin_password }}"
+    login_port: "{{  db_admin_port }}"
+    name: "{{ wp_mysql_db }}"
+    state: present
+    
+- name: Create WordPress database user
+  mysql_user: 
+    login_host: "{{ db_admin_host}}"
+    login_user: "{{ db_admin_user}}"
+    login_password: "{{ db_admin_password }}"
+    login_port: "{{  db_admin_port }}"
+    name: "{{ wp_mysql_user }}"
+    password: "{{ wp_mysql_password }}"
+    priv: "{{ wp_mysql_db }}.*:ALL"
+    host: 'localhost'
+    state: present
+
+- name: Setup WordPress to manage wp-content
+  file:
+    path: "/var/www/{{ site_dir_name }}//wordpress/wp-content"
+    owner: "{{ web_user }}"
+    group: "{{ web_group }}"
+    mode: u=rwX,g=rwX,o=rX
+    recurse: yes
+    state: directory
+    

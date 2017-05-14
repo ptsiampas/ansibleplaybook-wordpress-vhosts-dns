@@ -1,0 +1,15 @@
+<VirtualHost *:80>
+     ServerAdmin webmaster@{{ site_name }}.web-dev
+     ServerName {{ site_name }}.web-dev.skynet
+     ServerAlias www.{{ site_name }}.web-dev.skynet
+     DocumentRoot /var/www/{{ site_name }}.web-dev/public_html/
+     <Directory "/var/www/{{ site_name }}.web-dev/public_html/">
+		    Options FollowSymLinks
+        AllowOverride All
+     	  Require all granted
+     </Directory>
+     ErrorLog /var/log/vhosts/{{ site_name }}.web-dev/error.log
+     CustomLog /var/log/vhosts/{{ site_name }}.web-dev/access.log combined
+</VirtualHost>
+
+# vim: syntax=apache ts=2 sw=2 sts=2 sr noet
