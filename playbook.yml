@@ -1,12 +1,18 @@
 - hosts: localhost
+  vars_prompt:
+    - name: site_name
+      prompt: "Enter the site name"
+      private: no
   tasks:
+    - ping: ~
     - fail: 
-        msg: Need the site name before script can build it. (-e "site_name=<sitename>")
+        msg: Need the site name before script can build it.
       when: site_name is undefined
     - name: Print Vars
       action: template src=templates/dumpall.j2 dest=/tmp/ansible.all
       when: dump|default(false)|bool
-      
+
+     
     - name: Create CNAME for {{ site_name }} key {{ ddns_key_name }}
       nsupdate:
         key_name: "{{ ddns_key_name }}"
